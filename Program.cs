@@ -60,9 +60,15 @@ namespace HammingCheckerApp
                     string text = File.ReadAllText(filePath);
                     byte[] textBytes = Encoding.UTF8.GetBytes(text);
 
+                    Console.WriteLine("Початкові дані (бітова послідовність):");
+                    Console.WriteLine(BitSequenceToString(textBytes));
+
                     // Створюємо кодер Хемінга та кодуємо дані.
                     IHammingStrategy encoder = new HammingEncoder();
                     byte[] encodedData = encoder.Encode(textBytes);
+
+                    Console.WriteLine("Дані, які будуть кодуватися (бітова послідовність):");
+                    Console.WriteLine(BitSequenceToString(encodedData));
 
                     // Записуємо закодовані дані в новий файл.
                     File.WriteAllBytes("encoded_data.bin", encodedData);
@@ -92,15 +98,21 @@ namespace HammingCheckerApp
                     // Зчитуємо закодовані дані з файлу.
                     byte[] encodedData = File.ReadAllBytes(filePath);
 
+                    Console.WriteLine("Закодовані дані (бітова послідовність):");
+                    Console.WriteLine(BitSequenceToString(encodedData));
+
                     // Створюємо декодер Хемінга та декодуємо дані.
                     IHammingStrategy decoder = new HammingEncoder();
                     byte[] decodedData = decoder.Decode(encodedData);
+
+                    Console.WriteLine("Розкодовані дані (бітова послідовність):");
+                    Console.WriteLine(BitSequenceToString(decodedData));
 
                     // Перетворюємо байти в текст з кодуванням UTF-8 і записуємо в файл.
                     string decodedText = Encoding.UTF8.GetString(decodedData);
                     File.WriteAllText("decoded_data.txt", decodedText);
 
-                    Console.WriteLine("Декодований текст записано в 'decoded_data.txt'.");
+                    Console.WriteLine("Розкодований текст записано в 'decoded_data.txt'.");
                 }
                 catch (Exception e)
                 {
@@ -133,9 +145,15 @@ namespace HammingCheckerApp
                     string text = File.ReadAllText(filePath);
                     byte[] textBytes = Encoding.UTF8.GetBytes(text);
 
+                    Console.WriteLine("Початкові дані (бітова послідовність):");
+                    Console.WriteLine(BitSequenceToString(textBytes));
+
                     // Створюємо кодер Хемінга з можливістю симуляції помилки та кодуємо дані.
                     IHammingStrategy encoder = new HammingEncoderWithSimulation(errorPosition);
                     byte[] encodedDataWithErrors = encoder.Encode(textBytes);
+
+                    Console.WriteLine("Закодовані дані з помилкою (бітова послідовність):");
+                    Console.WriteLine(BitSequenceToString(encodedDataWithErrors));
 
                     // Записуємо закодовані дані з помилкою в новий файл.
                     File.WriteAllBytes("encoded_data_with_errors.bin", encodedDataWithErrors);
@@ -151,6 +169,11 @@ namespace HammingCheckerApp
             {
                 Console.WriteLine("Файл не знайдено. Будь ласка, вкажіть дійсний шлях до файлу.");
             }
+        }
+
+        static string BitSequenceToString(byte[] data)
+        {
+            return string.Join(" ", data.Select(b => Convert.ToString(b, 2).PadLeft(8, '0')));
         }
     }
 }
