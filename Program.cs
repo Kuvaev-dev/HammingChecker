@@ -1,24 +1,31 @@
-﻿namespace HammingChecker
+﻿using System.Text;
+using HammingChecker;
+
+namespace HammingCheckerApp
 {
     class Program
     {
         static void Main()
         {
+            // Встановлюємо кодування виводу для коректного відображення українських символів.
+            Console.OutputEncoding = Encoding.Unicode;
+
             Console.WriteLine("Ласкаво просимо до програми кодування та декодування Хемінга!");
 
             while (true)
             {
                 Console.WriteLine("\nОберіть операцію:");
-                Console.WriteLine("1. Кодувати з текстового файлу");
-                Console.WriteLine("2. Декодувати з текстового файлу");
-                Console.WriteLine("3. Ввести помилку та закодувати з текстового файлу");
+                Console.WriteLine("1. Кодувати текстовий файл");
+                Console.WriteLine("2. Декодувати байтовий файл");
+                Console.WriteLine("3. Ввести помилку та кодувати текстовий файл");
                 Console.WriteLine("4. Вийти");
+                Console.Write("Ваш вибір (1 - 4): ");
 
                 string choice = Console.ReadLine();
 
                 if (choice == "1")
                 {
-                    EncodeOperationFromFile();
+                    EncodeTextOperationFromFile();
                 }
                 else if (choice == "2")
                 {
@@ -26,7 +33,7 @@
                 }
                 else if (choice == "3")
                 {
-                    EnterErrorAndEncodeOperationFromFile();
+                    EnterErrorAndEncodeTextOperationFromFile();
                 }
                 else if (choice == "4")
                 {
@@ -40,7 +47,7 @@
             }
         }
 
-        static void EncodeOperationFromFile()
+        static void EncodeTextOperationFromFile()
         {
             Console.Write("Введіть шлях до текстового файлу для зчитування та кодування: ");
             string filePath = Console.ReadLine();
@@ -49,17 +56,18 @@
             {
                 try
                 {
-                    // Зчитати дані з файлу
-                    string inputData = File.ReadAllText(filePath);
+                    // Зчитуємо текст з файлу і перетворюємо його в байти з кодуванням UTF-8.
+                    string text = File.ReadAllText(filePath);
+                    byte[] textBytes = Encoding.UTF8.GetBytes(text);
 
-                    // Використовувати стратегію HammingEncoder для кодування даних
+                    // Створюємо кодер Хемінга та кодуємо дані.
                     IHammingStrategy encoder = new HammingEncoder();
-                    string encodedData = encoder.Encode(inputData);
+                    byte[] encodedData = encoder.Encode(textBytes);
 
-                    // Записати закодовані дані у новий файл
-                    File.WriteAllText("encoded_data.txt", encodedData);
+                    // Записуємо закодовані дані в новий файл.
+                    File.WriteAllBytes("encoded_data.bin", encodedData);
 
-                    Console.WriteLine("Закодовані дані записані в 'encoded_data.txt'.");
+                    Console.WriteLine("Закодовані дані записані в 'encoded_data.bin'.");
                 }
                 catch (Exception e)
                 {
@@ -74,24 +82,25 @@
 
         static void DecodeOperationFromFile()
         {
-            Console.Write("Введіть шлях до текстового файлу для зчитування та декодування: ");
+            Console.Write("Введіть шлях до байтового файлу для зчитування та декодування: ");
             string filePath = Console.ReadLine();
 
             if (File.Exists(filePath))
             {
                 try
                 {
-                    // Зчитати закодовані дані з файлу
-                    string encodedData = File.ReadAllText(filePath);
+                    // Зчитуємо закодовані дані з файлу.
+                    byte[] encodedData = File.ReadAllBytes(filePath);
 
-                    // Використовувати стратегію HammingEncoder для декодування даних
+                    // Створюємо декодер Хемінга та декодуємо дані.
                     IHammingStrategy decoder = new HammingEncoder();
-                    string decodedData = decoder.Decode(encodedData);
+                    byte[] decodedData = decoder.Decode(encodedData);
 
-                    // Записати декодовані дані у новий файл
-                    File.WriteAllText("decoded_data.txt", decodedData);
+                    // Перетворюємо байти в текст з кодуванням UTF-8 і записуємо в файл.
+                    string decodedText = Encoding.UTF8.GetString(decodedData);
+                    File.WriteAllText("decoded_data.txt", decodedText);
 
-                    Console.WriteLine("Декодовані дані записані в 'decoded_data.txt'.");
+                    Console.WriteLine("Декодований текст записано в 'decoded_data.txt'.");
                 }
                 catch (Exception e)
                 {
@@ -104,7 +113,7 @@
             }
         }
 
-        static void EnterErrorAndEncodeOperationFromFile()
+        static void EnterErrorAndEncodeTextOperationFromFile()
         {
             Console.Write("Введіть шлях до текстового файлу для зчитування та кодування з помилкою: ");
             string filePath = Console.ReadLine();
@@ -120,17 +129,18 @@
 
                 try
                 {
-                    // Зчитати дані з файлу
-                    string inputData = File.ReadAllText(filePath);
+                    // Зчитуємо текст з файлу і перетворюємо його в байти з кодуванням UTF-8.
+                    string text = File.ReadAllText(filePath);
+                    byte[] textBytes = Encoding.UTF8.GetBytes(text);
 
-                    // Використовувати стратегію HammingEncoderWithSimulation для кодування з помилкою
+                    // Створюємо кодер Хемінга з можливістю симуляції помилки та кодуємо дані.
                     IHammingStrategy encoder = new HammingEncoderWithSimulation(errorPosition);
-                    string encodedDataWithErrors = encoder.Encode(inputData);
+                    byte[] encodedDataWithErrors = encoder.Encode(textBytes);
 
-                    // Записати закодовані дані з помилкою у новий файл
-                    File.WriteAllText("encoded_data_with_errors.txt", encodedDataWithErrors);
+                    // Записуємо закодовані дані з помилкою в новий файл.
+                    File.WriteAllBytes("encoded_data_with_errors.bin", encodedDataWithErrors);
 
-                    Console.WriteLine("Закодовані дані з помилкою записані в 'encoded_data_with_errors.txt'.");
+                    Console.WriteLine("Закодовані дані з помилкою записані в 'encoded_data_with_errors.bin'.");
                 }
                 catch (Exception e)
                 {

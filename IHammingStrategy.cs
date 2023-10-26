@@ -1,9 +1,9 @@
 ﻿namespace HammingChecker
 {
-    // Визначення інтерфейсу стратегії Хемінга.
+    // Інтерфейс IHammingStrategy визначає методи, які мають бути реалізовані в кодерах та декодерах Хемінга.
     interface IHammingStrategy
     {
-        string Encode(string data);
-        string Decode(string encodedData);
+        byte[] Encode(byte[] data); // Метод кодування
+        byte[] Decode(byte[] encodedData); // Метод декодування
     }
 }
