@@ -1,6 +1,7 @@
 ﻿namespace HammingChecker
 {
-    // Клас HammingEncoderWithSimulation також реалізує інтерфейс IHammingStrategy для кодування та декодування Хемінга, але дозволяє симулювати помилку.
+    // Клас HammingEncoderWithSimulation також реалізує інтерфейс IHammingStrategy для кодування та декодування Хемінга,
+    // але дозволяє симулювати помилку.
     class HammingEncoderWithSimulation : IHammingStrategy
     {
         private readonly int errorPosition;
@@ -10,37 +11,39 @@
             this.errorPosition = errorPosition;
         }
 
+        // Метод кодування Хемінга з можливістю симуляції помилки
         public byte[] Encode(byte[] data)
         {
-            if (data.Length != 4)
+            // Визначимо довжину блоку даних, залежно від розміру вхідних даних.
+            int dataBlockSize = 4; // Фіксований розмір блоку.
+            if (data.Length > dataBlockSize)
             {
-                throw new ArgumentException("Вхідні дані повинні містити 4 байти.");
+                dataBlockSize = data.Length;
             }
 
             // Створюємо масив для кодових даних.
-            byte[] hammingCode = new byte[7];
+            int hammingCodeLength = CalculateHammingCodeLength(dataBlockSize);
+            byte[] hammingCode = new byte[hammingCodeLength];
             int dataIdx = 0;
 
             // Заповнюємо масив, додаючи біти даних та обчислені біти перевірки парності.
-            for (int i = 0; i < 7; i++)
+            for (int i = 0; i < hammingCodeLength; i++)
             {
-                if (i == 0 || i == 1 || i == 3)
+                if (IsParityPosition(i))
                 {
-                    hammingCode[i] = 0;
+                    hammingCode[i] = 0; // Позиція біта перевірки парності.
                 }
-                else
+                else if (dataIdx < data.Length)
                 {
                     hammingCode[i] = data[dataIdx++];
                 }
             }
 
             // Обчислюємо біти перевірки парності.
-            hammingCode[0] = CalculateParityBit(hammingCode, new int[] { 0, 2, 4, 6 });
-            hammingCode[1] = CalculateParityBit(hammingCode, new int[] { 1, 2, 5, 6 });
-            hammingCode[3] = CalculateParityBit(hammingCode, new int[] { 3, 4, 5, 6 });
+            CalculateParityBits(hammingCode);
 
             // Симулюємо помилку, якщо позиція помилки вказана користувачем.
-            if (errorPosition >= 0 && errorPosition < 7)
+            if (errorPosition >= 0 && errorPosition < hammingCodeLength)
             {
                 hammingCode[errorPosition] = (hammingCode[errorPosition] == 0) ? (byte)1 : (byte)0;
             }
@@ -48,24 +51,24 @@
             return hammingCode;
         }
 
+        // Метод декодування Хемінга
         public byte[] Decode(byte[] encodedData)
         {
-            if (encodedData.Length != 7)
+            // Визначимо довжину блоку даних, залежно від розміру вхідних даних.
+            int dataBlockSize = 4; // Фіксований розмір блоку.
+            if (encodedData.Length > dataBlockSize + 3)
             {
-                throw new ArgumentException("Вхідні закодовані дані повинні містити 7 байтів.");
+                dataBlockSize = encodedData.Length - 3; // Враховуємо 3 біти перевірки парності.
             }
 
             // Створюємо масив для декодованих даних.
-            byte[] hammingCode = new byte[7];
-            Array.Copy(encodedData, hammingCode, 7);
+            byte[] hammingCode = new byte[encodedData.Length];
+            Array.Copy(encodedData, hammingCode, encodedData.Length);
 
             // Обчислюємо біти перевірки парності для виявлення помилок.
-            int[] errorPositions = new int[3];
-            errorPositions[0] = CalculateParityBit(hammingCode, new int[] { 0, 2, 4, 6 });
-            errorPositions[1] = CalculateParityBit(hammingCode, new int[] { 1, 2, 5, 6 });
-            errorPositions[2] = CalculateParityBit(hammingCode, new int[] { 3, 4, 5, 6 });
+            int[] errorPositions = CalculateParityBits(hammingCode);
 
-            int calculatedErrorPosition = errorPositions[0] + 2 * errorPositions[1] + 4 * errorPositions[2] - 1;
+            int calculatedErrorPosition = CalculateCalculatedErrorPosition(errorPositions);
 
             if (calculatedErrorPosition != -1)
             {
@@ -74,12 +77,12 @@
             }
 
             // Витягуємо оригінальні дані з кодових даних.
-            byte[] decodedData = new byte[4];
+            byte[] decodedData = new byte[dataBlockSize];
             int decodedDataIdx = 0;
 
-            for (int i = 0; i < 7; i++)
+            for (int i = 0; i < hammingCode.Length; i++)
             {
-                if (i != 0 && i != 1 && i != 3)
+                if (!IsParityPosition(i))
                 {
                     decodedData[decodedDataIdx++] = hammingCode[i];
                 }
@@ -88,12 +91,68 @@
             return decodedData;
         }
 
-        private byte CalculateParityBit(byte[] hammingCode, int[] positions)
+        // Внутрішній метод для обчислення довжини кодового слова Хемінга.
+        private int CalculateHammingCodeLength(int dataBlockSize)
         {
-            // Обчислюємо біт перевірки парності на основі заданих позицій.
-            int countOnes = positions.Count(pos => hammingCode[pos] == 1);
+            int hammingCodeLength = dataBlockSize + 3; // Додамо 3 біти перевірки парності.
+            while (!IsPowerOfTwo(hammingCodeLength))
+            {
+                hammingCodeLength++;
+            }
+            return hammingCodeLength;
+        }
 
-            return (countOnes % 2 == 1) ? (byte)1 : (byte)0;
+        // Внутрішній метод для перевірки, чи є число степенем двійки.
+        private bool IsPowerOfTwo(int n)
+        {
+            return (n != 0) && ((n & (n - 1)) == 0);
+        }
+
+        // Внутрішній метод для перевірки, чи це позиція біта перевірки парності.
+        private bool IsParityPosition(int position)
+        {
+            // Позиції бітів перевірки парності це степені 2: 1, 2, 4, 8, 16, ...
+            // Тобто позиція парності задана у двійковій формі має лише одну одиницю.
+            return (position & (position - 1)) == 0;
+        }
+
+        // Внутрішній метод для обчислення бітів перевірки парності.
+        private int[] CalculateParityBits(byte[] hammingCode)
+        {
+            int hammingCodeLength = hammingCode.Length;
+            int numParityBits = 0;
+            while (IsPowerOfTwo(hammingCodeLength))
+            {
+                numParityBits++;
+                hammingCodeLength--;
+            }
+
+            int[] errorPositions = new int[numParityBits];
+
+            for (int i = 0; i < numParityBits; i++)
+            {
+                int mask = 1 << i;
+                for (int j = 1; j < hammingCode.Length; j++)
+                {
+                    if ((j & mask) != 0 && hammingCode[j] == 1)
+                    {
+                        errorPositions[i] ^= 1;
+                    }
+                }
+            }
+
+            return errorPositions;
+        }
+
+        // Внутрішній метод для обчислення позиції помилки на основі розрахованих позицій помилок.
+        private int CalculateCalculatedErrorPosition(int[] errorPositions)
+        {
+            int calculatedErrorPosition = 0;
+            for (int i = 0; i < errorPositions.Length; i++)
+            {
+                calculatedErrorPosition |= errorPositions[i] << i;
+            }
+            return (calculatedErrorPosition == 0) ? -1 : calculatedErrorPosition;
         }
     }
 }

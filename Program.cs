@@ -1,13 +1,13 @@
-﻿using System.Text;
-using HammingChecker;
+﻿using HammingChecker;
+using System.Text;
 
 namespace HammingCheckerApp
 {
+    // Основний клас програми.
     class Program
     {
         static void Main()
         {
-            // Встановлюємо кодування виводу для коректного відображення українських символів.
             Console.OutputEncoding = Encoding.Unicode;
 
             Console.WriteLine("Ласкаво просимо до програми кодування та декодування Хемінга!");
@@ -56,21 +56,23 @@ namespace HammingCheckerApp
             {
                 try
                 {
-                    // Зчитуємо текст з файлу і перетворюємо його в байти з кодуванням UTF-8.
                     string text = File.ReadAllText(filePath);
                     byte[] textBytes = Encoding.UTF8.GetBytes(text);
 
-                    Console.WriteLine("Початкові дані (бітова послідовність):");
-                    Console.WriteLine(BitSequenceToString(textBytes));
+                    Console.WriteLine("Початкові дані (байти):");
+                    PrintByteTable(textBytes);
 
-                    // Створюємо кодер Хемінга та кодуємо дані.
+                    // Ініціалізуємо кодер Хемінга.
                     IHammingStrategy encoder = new HammingEncoder();
+                    // Округлюємо довжину textBytes до ближнього більшого кратного 4 для коректної обробки.
+                    int roundedLength = (int)Math.Ceiling(textBytes.Length / 4.0) * 4;
+                    Array.Resize(ref textBytes, roundedLength);
                     byte[] encodedData = encoder.Encode(textBytes);
 
-                    Console.WriteLine("Дані, які будуть кодуватися (бітова послідовність):");
-                    Console.WriteLine(BitSequenceToString(encodedData));
+                    Console.WriteLine("Дані, які будуть кодуватися (байти):");
+                    PrintByteTable(encodedData);
 
-                    // Записуємо закодовані дані в новий файл.
+                    // Зберігаємо закодовані дані в файл 'encoded_data.bin'.
                     File.WriteAllBytes("encoded_data.bin", encodedData);
 
                     Console.WriteLine("Закодовані дані записані в 'encoded_data.bin'.");
@@ -95,20 +97,30 @@ namespace HammingCheckerApp
             {
                 try
                 {
-                    // Зчитуємо закодовані дані з файлу.
                     byte[] encodedData = File.ReadAllBytes(filePath);
 
-                    Console.WriteLine("Закодовані дані (бітова послідовність):");
-                    Console.WriteLine(BitSequenceToString(encodedData));
+                    Console.WriteLine("Закодовані дані (байти):");
+                    PrintByteTable(encodedData);
 
-                    // Створюємо декодер Хемінга та декодуємо дані.
+                    // Ініціалізуємо декодер Хемінга.
                     IHammingStrategy decoder = new HammingEncoder();
                     byte[] decodedData = decoder.Decode(encodedData);
 
-                    Console.WriteLine("Розкодовані дані (бітова послідовність):");
-                    Console.WriteLine(BitSequenceToString(decodedData));
+                    // При декодуванні може виникнути декілька нульових байтів на кінці, видалімо їх.
+                    int nonZeroLength = decodedData.Length;
+                    for (int i = decodedData.Length - 1; i >= 0; i--)
+                    {
+                        if (decodedData[i] != 0)
+                        {
+                            break;
+                        }
+                        nonZeroLength--;
+                    }
+                    Array.Resize(ref decodedData, nonZeroLength);
 
-                    // Перетворюємо байти в текст з кодуванням UTF-8 і записуємо в файл.
+                    Console.WriteLine("Розкодовані дані (байти):");
+                    PrintByteTable(decodedData);
+
                     string decodedText = Encoding.UTF8.GetString(decodedData);
                     File.WriteAllText("decoded_data.txt", decodedText);
 
@@ -141,21 +153,20 @@ namespace HammingCheckerApp
 
                 try
                 {
-                    // Зчитуємо текст з файлу і перетворюємо його в байти з кодуванням UTF-8.
                     string text = File.ReadAllText(filePath);
                     byte[] textBytes = Encoding.UTF8.GetBytes(text);
 
-                    Console.WriteLine("Початкові дані (бітова послідовність):");
-                    Console.WriteLine(BitSequenceToString(textBytes));
+                    Console.WriteLine("Початкові дані (байти):");
+                    PrintByteTable(textBytes);
 
-                    // Створюємо кодер Хемінга з можливістю симуляції помилки та кодуємо дані.
+                    // Ініціалізуємо кодер Хемінга з можливістю симуляції помилки.
                     IHammingStrategy encoder = new HammingEncoderWithSimulation(errorPosition);
                     byte[] encodedDataWithErrors = encoder.Encode(textBytes);
 
-                    Console.WriteLine("Закодовані дані з помилкою (бітова послідовність):");
-                    Console.WriteLine(BitSequenceToString(encodedDataWithErrors));
+                    Console.WriteLine("Закодовані дані з помилкою (байти):");
+                    PrintByteTable(encodedDataWithErrors);
 
-                    // Записуємо закодовані дані з помилкою в новий файл.
+                    // Зберігаємо закодовані дані з помилкою в файл 'encoded_data_with_errors.bin'.
                     File.WriteAllBytes("encoded_data_with_errors.bin", encodedDataWithErrors);
 
                     Console.WriteLine("Закодовані дані з помилкою записані в 'encoded_data_with_errors.bin'.");
@@ -171,9 +182,14 @@ namespace HammingCheckerApp
             }
         }
 
-        static string BitSequenceToString(byte[] data)
+        static void PrintByteTable(byte[] data)
         {
-            return string.Join(" ", data.Select(b => Convert.ToString(b, 2).PadLeft(8, '0')));
+            Console.WriteLine("Byte Index | Binary Value");
+            Console.WriteLine("----------------------------");
+            for (int i = 0; i < data.Length; i++)
+            {
+                Console.WriteLine($"{i,11} | {Convert.ToString(data[i], 2).PadLeft(8, '0')}");
+            }
         }
     }
 }
