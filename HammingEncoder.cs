@@ -3,7 +3,6 @@
     // Клас HammingEncoder реалізує інтерфейс IHammingStrategy для кодування та декодування Хемінга.
     class HammingEncoder : IHammingStrategy
     {
-        // Метод кодування Хемінга
         public byte[] Encode(byte[] data)
         {
             int dataLength = data.Length;
@@ -14,20 +13,22 @@
             int dataIndex = 0;
             int hammingIndex = 0;
 
-            // Заповнюємо масив Хемінг-коду, обчислюючи значення бітів перевірки парності.
+            // Кодування бітів даних та додавання підсумкових бітів.
             for (int i = 0; i < totalLength; i++)
             {
-                if (IsPowerOfTwo(i + 1)) // Індекси бітів перевірки парності
+                if (IsPowerOfTwo(i + 1))
                 {
-                    hammingCode[i] = 0; // Ініціалізуємо біти перевірки парності зі значенням 0
+                    // Якщо це підсумковий біт, встановити його як 0.
+                    hammingCode[i] = 0;
                 }
                 else
                 {
+                    // Якщо це біт даних, взяти його з вхідних даних.
                     hammingCode[i] = data[dataIndex++];
                 }
             }
 
-            // Обчислюємо значення бітів перевірки парності
+            // Розрахунок та додавання підсумкових бітів.
             for (int i = 0; i < parityBitsCount; i++)
             {
                 int parityBitIndex = (int)Math.Pow(2, i) - 1;
@@ -37,7 +38,6 @@
             return hammingCode;
         }
 
-        // Метод декодування Хемінга
         public byte[] Decode(byte[] encodedData)
         {
             int encodedLength = encodedData.Length;
@@ -46,11 +46,12 @@
             byte[] decodedData = new byte[dataLength];
             int dataIndex = 0;
 
-            // Відновлюємо оригінальні дані, пропускаючи біти перевірки парності.
+            // Декодування даних, ігнорування підсумкових бітів.
             for (int i = 0; i < encodedLength; i++)
             {
-                if (!IsPowerOfTwo(i + 1)) // Пропускаємо біти перевірки парності
+                if (!IsPowerOfTwo(i + 1))
                 {
+                    // Якщо це біт даних, взяти його до розкодованих даних.
                     decodedData[dataIndex++] = encodedData[i];
                 }
             }
@@ -58,35 +59,59 @@
             return decodedData;
         }
 
-        // Внутрішній метод для обчислення кількості бітів перевірки парності.
+        public byte[] FixError(byte[] data, int errorPosition)
+        {
+            int parityBitsCount = CalculateParityBitsCount(data.Length);
+            int parityBitPosition = (int)Math.Log(errorPosition, 2);
+
+            // Виправлення помилки шляхом зміни біта.
+            data[errorPosition - 1] = (byte)(data[errorPosition - 1] ^ 1);
+
+            // Оновлення підсумкових бітів після виправлення помилки.
+            for (int i = 0; i < parityBitsCount; i++)
+            {
+                int parityBitIndex = (int)Math.Pow(2, i) - 1;
+                data[parityBitIndex] = CalculateParityBit(data, parityBitIndex, i);
+            }
+
+            return data;
+        }
+
+        // Метод CalculateParityBitsCount обчислює кількість додаткових бітів перевірки парності.
         private int CalculateParityBitsCount(int dataLength)
         {
             int m = dataLength;
             int r = 0;
+
+            // Обчислення кількості підсумкових бітів (r) за формулою 2^r >= m + r + 1.
             while (Math.Pow(2, r) <= m + r + 1)
             {
                 r++;
             }
+
             return r;
         }
 
-        // Внутрішній метод для перевірки, чи є число степенем двійки.
+        // Метод IsPowerOfTwo перевіряє, чи є число степенем двійки.
         private bool IsPowerOfTwo(int n)
         {
             return (n & (n - 1)) == 0;
         }
 
-        // Внутрішній метод для обчислення біта перевірки парності.
+        // Метод CalculateParityBit обчислює біт перевірки парності для заданого позиційного біту.
         private byte CalculateParityBit(byte[] data, int parityBitIndex, int parityBitPosition)
         {
             byte parityBit = 0;
+
+            // Обчислення підсумкового біта за допомогою операції XOR для відповідних бітів даних.
             for (int i = parityBitIndex; i < data.Length; i++)
             {
-                if ((i + 1 & (1 << parityBitPosition)) != 0) // Перевірка бітів за позицією
+                if ((i + 1 & (1 << parityBitPosition)) != 0)
                 {
                     parityBit ^= data[i];
                 }
             }
+
             return parityBit;
         }
     }
