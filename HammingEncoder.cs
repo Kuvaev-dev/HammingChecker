@@ -1,118 +1,138 @@
-﻿namespace HammingChecker
+﻿public static class HammingEncoder
 {
-    // Клас HammingEncoder реалізує інтерфейс IHammingStrategy для кодування та декодування Хемінга.
-    class HammingEncoder : IHammingStrategy
+    // Метод кодування текстового повідомлення методом Хемінга.
+    public static string Encode(string text)
     {
-        public byte[] Encode(byte[] data)
+        // Обчислення необхідної кількості додаткових бітів (r).
+        int m = text.Length;
+        int r = 0;
+        while (m + r + 1 > Math.Pow(2, r))
         {
-            int dataLength = data.Length;
-            int parityBitsCount = CalculateParityBitsCount(dataLength);
-            int totalLength = dataLength + parityBitsCount;
-            byte[] hammingCode = new byte[totalLength];
+            r++;
+        }
 
-            int dataIndex = 0;
-            int hammingIndex = 0;
+        // Створення масиву для закодованого повідомлення.
+        char[] encodedMessage = new char[m + r];
+        int j = 0;
 
-            // Кодування бітів даних та додавання підсумкових бітів.
-            for (int i = 0; i < totalLength; i++)
+        // Заповнення закодованого повідомлення, додавання бітів з тексту та обчислення бітів парності.
+        for (int i = 1; i <= m + r; i++)
+        {
+            if (IsPowerOfTwo(i))
             {
-                if (IsPowerOfTwo(i + 1))
+                encodedMessage[i - 1] = '0';
+            }
+            else
+            {
+                encodedMessage[i - 1] = text[j++];
+            }
+        }
+
+        // Виведення закодованого повідомлення в двійковій формі на консоль.
+        Console.WriteLine("Закодоване повідомлення в двійковій формі:");
+        for (int i = 0; i < encodedMessage.Length; i++)
+        {
+            Console.Write(encodedMessage[i] + " ");
+        }
+        Console.WriteLine();
+
+        // Повернення закодованого повідомлення.
+        return new string(encodedMessage);
+    }
+
+    // Метод декодування закодованого повідомлення методом Хемінга.
+    public static string Decode(string encodedText)
+    {
+        // Обчислення кількості додаткових бітів (r).
+        int r = 0;
+        while (Math.Pow(2, r) < encodedText.Length)
+        {
+            r++;
+        }
+
+        // Обчислення кількості даних бітів (m).
+        int m = encodedText.Length - r;
+        char[] decodedMessage = new char[m];
+        int j = 0;
+
+        // Видалення бітів парності та відновлення даних бітів.
+        for (int i = 1; i <= m + r; i++)
+        {
+            if (!IsPowerOfTwo(i))
+            {
+                decodedMessage[j++] = encodedText[i - 1];
+            }
+        }
+
+        // Виведення розкодованого повідомлення в двійковій формі на консоль.
+        Console.WriteLine("Розкодоване повідомлення в двійковій формі:");
+        for (int i = 0; i < decodedMessage.Length; i++)
+        {
+            Console.Write(decodedMessage[i] + " ");
+        }
+        Console.WriteLine();
+
+        // Повернення розкодованого повідомлення.
+        return new string(decodedMessage);
+    }
+
+    // Метод введення помилки в закодований байтовий масив.
+    public static void IntroduceError(byte[] encodedBytes, int errorPosition)
+    {
+        // Обчислення індексу байта та біта в байті для введення помилки.
+        int byteIndex = errorPosition / 8;
+        int bitIndex = errorPosition % 8;
+
+        // Введення помилки в вказаному байті та біті.
+        encodedBytes[byteIndex] ^= (byte)(1 << (7 - bitIndex));
+    }
+
+    // Метод виправлення помилок у закодованому байтовому масиві.
+    public static void CorrectError(byte[] encodedBytes)
+    {
+        // Обчислення кількості додаткових бітів (r).
+        int r = 0;
+        while (Math.Pow(2, r) < encodedBytes.Length * 8)
+        {
+            r++;
+        }
+
+        // Виправлення помилок у закодованому масиві шляхом зміни бітів.
+        for (int i = 0; i < r; i++)
+        {
+            int parityPosition = (int)Math.Pow(2, i);
+            int parityBit = 0;
+
+            // Обчислення біту парності для кожного позиції.
+            for (int k = parityPosition - 1; k < encodedBytes.Length * 8; k += 2 * parityPosition)
+            {
+                for (int l = 0; l < parityPosition && k + l < encodedBytes.Length * 8; l++)
                 {
-                    // Якщо це підсумковий біт, встановити його як 0.
-                    hammingCode[i] = 0;
-                }
-                else
-                {
-                    // Якщо це біт даних, взяти його з вхідних даних.
-                    hammingCode[i] = data[dataIndex++];
+                    int byteIndex = (k + l) / 8;
+                    int bitIndex = (k + l) % 8;
+                    parityBit ^= (encodedBytes[byteIndex] >> (7 - bitIndex)) & 1;
                 }
             }
 
-            // Розрахунок та додавання підсумкових бітів.
-            for (int i = 0; i < parityBitsCount; i++)
+            int errorPosition = 0;
+            for (int k = parityPosition; k < encodedBytes.Length * 8; k += parityPosition * 2)
             {
-                int parityBitIndex = (int)Math.Pow(2, i) - 1;
-                hammingCode[parityBitIndex] = CalculateParityBit(hammingCode, parityBitIndex, i);
+                errorPosition += k;
             }
 
-            return hammingCode;
-        }
-
-        public byte[] Decode(byte[] encodedData)
-        {
-            int encodedLength = encodedData.Length;
-            int parityBitsCount = CalculateParityBitsCount(encodedLength);
-            int dataLength = encodedLength - parityBitsCount;
-            byte[] decodedData = new byte[dataLength];
-            int dataIndex = 0;
-
-            // Декодування даних, ігнорування підсумкових бітів.
-            for (int i = 0; i < encodedLength; i++)
+            // Якщо біт парності не дорівнює 0, виправити помилку.
+            if (parityBit != 0)
             {
-                if (!IsPowerOfTwo(i + 1))
-                {
-                    // Якщо це біт даних, взяти його до розкодованих даних.
-                    decodedData[dataIndex++] = encodedData[i];
-                }
+                int byteIndex = (errorPosition - 1) / 8;
+                int bitIndex = (errorPosition - 1) % 8;
+                encodedBytes[byteIndex] ^= (byte)(1 << (7 - bitIndex));
             }
-
-            return decodedData;
         }
+    }
 
-        public byte[] FixError(byte[] data, int errorPosition)
-        {
-            int parityBitsCount = CalculateParityBitsCount(data.Length);
-            int parityBitPosition = (int)Math.Log(errorPosition, 2);
-
-            // Виправлення помилки шляхом зміни біта.
-            data[errorPosition - 1] = (byte)(data[errorPosition - 1] ^ 1);
-
-            // Оновлення підсумкових бітів після виправлення помилки.
-            for (int i = 0; i < parityBitsCount; i++)
-            {
-                int parityBitIndex = (int)Math.Pow(2, i) - 1;
-                data[parityBitIndex] = CalculateParityBit(data, parityBitIndex, i);
-            }
-
-            return data;
-        }
-
-        // Метод CalculateParityBitsCount обчислює кількість додаткових бітів перевірки парності.
-        private int CalculateParityBitsCount(int dataLength)
-        {
-            int m = dataLength;
-            int r = 0;
-
-            // Обчислення кількості підсумкових бітів (r) за формулою 2^r >= m + r + 1.
-            while (Math.Pow(2, r) <= m + r + 1)
-            {
-                r++;
-            }
-
-            return r;
-        }
-
-        // Метод IsPowerOfTwo перевіряє, чи є число степенем двійки.
-        private bool IsPowerOfTwo(int n)
-        {
-            return (n & (n - 1)) == 0;
-        }
-
-        // Метод CalculateParityBit обчислює біт перевірки парності для заданого позиційного біту.
-        private byte CalculateParityBit(byte[] data, int parityBitIndex, int parityBitPosition)
-        {
-            byte parityBit = 0;
-
-            // Обчислення підсумкового біта за допомогою операції XOR для відповідних бітів даних.
-            for (int i = parityBitIndex; i < data.Length; i++)
-            {
-                if ((i + 1 & (1 << parityBitPosition)) != 0)
-                {
-                    parityBit ^= data[i];
-                }
-            }
-
-            return parityBit;
-        }
+    // Допоміжний метод для перевірки, чи є число степенем двійки.
+    private static bool IsPowerOfTwo(int number)
+    {
+        return (number & (number - 1)) == 0 && number > 0;
     }
 }

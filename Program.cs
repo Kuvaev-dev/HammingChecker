@@ -1,195 +1,153 @@
 ﻿using System.Text;
 
-namespace HammingChecker
+class Program
 {
-    // Клас Program містить точку входу в програму та операції з використанням Хемінга.
-    class Program
+    static void Main(string[] args)
     {
-        static void Main()
+        Console.WriteLine("Програма для кодування, декодування та корекції помилок за допомогою коду Хемінга");
+
+        while (true)
         {
-            Console.OutputEncoding = Encoding.Unicode;
+            Console.WriteLine("1. Виконати кодування методом Хемінга та зберегти у файл .bin");
+            Console.WriteLine("2. Виконати декодування методом Хемінга та зберегти у файл .txt");
+            Console.WriteLine("3. Виконати корекцію помилок у коді Хемінга");
+            Console.WriteLine("4. Вийти");
+            Console.Write("Введіть ваш вибір: ");
 
-            Console.WriteLine("Ласкаво просимо до програми кодування, декодування та виправлення помилок Хемінга!");
-
-            while (true)
+            int choice;
+            if (!int.TryParse(Console.ReadLine(), out choice))
             {
-                Console.WriteLine("\nОберіть операцію:");
-                Console.WriteLine("1. Кодувати текстовий файл");
-                Console.WriteLine("2. Декодувати байтовий файл");
-                Console.WriteLine("3. Виправити помилку в закодованій послідовності");
-                Console.WriteLine("4. Вийти");
-                Console.Write("Ваш вибір (1 - 4): ");
+                Console.WriteLine("Некоректний ввід. Будь ласка, введіть правильний вибір.");
+                continue;
+            }
 
-                string choice = Console.ReadLine();
-
-                if (choice == "1")
-                {
-                    EncodeTextOperationFromFile();
-                }
-                else if (choice == "2")
-                {
-                    DecodeOperationFromFile();
-                }
-                else if (choice == "3")
-                {
-                    FixErrorInEncodedData();
-                }
-                else if (choice == "4")
-                {
-                    Console.WriteLine("Завершення програми.");
+            switch (choice)
+            {
+                case 1:
+                    PerformHammingEncoding();
                     break;
-                }
-                else
-                {
-                    Console.WriteLine("Неправильний вибір. Будь ласка, оберіть дійсну операцію.");
-                }
+                case 2:
+                    PerformHammingDecoding();
+                    break;
+                case 3:
+                    PerformErrorCorrection();
+                    break;
+                case 4:
+                    Environment.Exit(0);
+                    break;
+                default:
+                    Console.WriteLine("Некоректний вибір. Будь ласка, введіть правильний вибір.");
+                    break;
             }
         }
+    }
 
-        // Метод EncodeTextOperationFromFile виконує кодування текстового файлу з використанням Хемінга.
-        static void EncodeTextOperationFromFile()
+    static void DisplayBinaryData(byte[] data)
+    {
+        Console.WriteLine("Двійкові дані:");
+        for (int i = 0; i < data.Length; i++)
         {
-            Console.Write("Введіть шлях до текстового файлу для зчитування та кодування: ");
-            string filePath = Console.ReadLine();
-
-            if (File.Exists(filePath))
+            Console.Write(Convert.ToString(data[i], 2).PadLeft(8, '0') + " ");
+            if ((i + 1) % 8 == 0)
             {
-                try
-                {
-                    string text = File.ReadAllText(filePath);
-                    byte[] textBytes = Encoding.UTF8.GetBytes(text);
-
-                    Console.WriteLine("Початкові дані (байти):");
-                    PrintByteTable(textBytes);
-
-                    IHammingStrategy encoder = new HammingEncoder();
-                    int roundedLength = (int)Math.Ceiling(textBytes.Length / 4.0) * 4;
-                    Array.Resize(ref textBytes, roundedLength);
-                    byte[] encodedData = encoder.Encode(textBytes);
-
-                    Console.WriteLine("Дані, які будуть кодуватися (байти):");
-                    PrintByteTable(encodedData);
-
-                    File.WriteAllBytes("encoded_data.bin", encodedData);
-
-                    Console.WriteLine("Закодовані дані записані в 'encoded_data.bin'.");
-                }
-                catch (Exception e)
-                {
-                    Console.WriteLine($"Виникла помилка: {e.Message}");
-                }
-            }
-            else
-            {
-                Console.WriteLine("Файл не знайдено. Будь ласка, вкажіть дійсний шлях до файлу.");
+                Console.WriteLine();
             }
         }
+        Console.WriteLine();
+    }
 
-        // Метод DecodeOperationFromFile виконує декодування байтового файлу з використанням Хемінга.
-        static void DecodeOperationFromFile()
+    // Метод для виконання кодування методом Хемінга.
+    static void PerformHammingEncoding()
+    {
+        Console.Write("Введіть шлях до текстового файлу для кодування: ");
+        string inputPath = Console.ReadLine();
+        if (!File.Exists(inputPath))
         {
-            Console.Write("Введіть шлях до байтового файлу для зчитування та декодування: ");
-            string filePath = Console.ReadLine();
-
-            if (File.Exists(filePath))
-            {
-                try
-                {
-                    byte[] encodedData = File.ReadAllBytes(filePath);
-
-                    Console.WriteLine("Закодовані дані (байти):");
-                    PrintByteTable(encodedData);
-
-                    IHammingStrategy decoder = new HammingEncoder();
-                    byte[] decodedData = decoder.Decode(encodedData);
-
-                    int nonZeroLength = decodedData.Length;
-                    for (int i = decodedData.Length - 1; i >= 0; i--)
-                    {
-                        if (decodedData[i] != 0)
-                        {
-                            break;
-                        }
-                        nonZeroLength--;
-                    }
-                    Array.Resize(ref decodedData, nonZeroLength);
-
-                    Console.WriteLine("Розкодовані дані (байти):");
-                    PrintByteTable(decodedData);
-
-                    string decodedText = Encoding.UTF8.GetString(decodedData);
-                    File.WriteAllText("decoded_data.txt", decodedText);
-
-                    Console.WriteLine("Розкодований текст записано в 'decoded_data.txt'.");
-                }
-                catch (Exception e)
-                {
-                    Console.WriteLine($"Виникла помилка: {e.Message}");
-                }
-            }
-            else
-            {
-                Console.WriteLine("Файл не знайдено. Будь ласка, вкажіть дійсний шлях до файлу.");
-            }
+            Console.WriteLine("Файл не знайдено. Будь ласка, введіть правильний шлях.");
+            return;
         }
 
-        // Метод FixErrorInEncodedData виконує виправлення помилок у закодованій послідовності.
-        static void FixErrorInEncodedData()
+        Console.Write("Введіть шлях для збереження файлу .bin: ");
+        string outputPath = Console.ReadLine();
+
+        string text = File.ReadAllText(inputPath, Encoding.UTF8);
+        string encodedText = HammingEncoder.Encode(text);
+        byte[] encodedBytes = Encoding.UTF8.GetBytes(encodedText);
+
+        using (FileStream fs = new FileStream(outputPath, FileMode.Create))
         {
-            Console.Write("Введіть шлях до файлу з закодованою послідовністю (.bin): ");
-            string filePath = Console.ReadLine();
-
-            if (File.Exists(filePath))
-            {
-                try
-                {
-                    byte[] encodedData = File.ReadAllBytes(filePath);
-
-                    Console.WriteLine("Закодована послідовність (байти):");
-                    PrintByteTable(encodedData);
-
-                    Console.Write("Введіть позицію помилки (1 - " + encodedData.Length + "): ");
-                    int errorPosition = int.Parse(Console.ReadLine());
-
-                    if (errorPosition >= 1 && errorPosition <= encodedData.Length)
-                    {
-                        IHammingStrategy encoder = new HammingEncoder();
-                        if (encoder is HammingEncoder hammingEncoder)
-                        {
-                            Console.WriteLine("Позиція помилки була внесена на біту " + errorPosition);
-                            byte[] correctedData = hammingEncoder.FixError(encodedData, errorPosition);
-                            File.WriteAllBytes("corrected_data.bin", correctedData);
-                            Console.WriteLine("Позиція помилки була виправлена.");
-                            Console.WriteLine("Послідовність з помилкою виправлена та збережена в 'corrected_data.bin'.");
-                            Console.WriteLine("Виправлена послідовність (байти):");
-                            PrintByteTable(correctedData);
-                        }
-                    }
-                    else
-                    {
-                        Console.WriteLine("Неправильна позиція помилки. Введіть число в межах від 1 до " + encodedData.Length + ".");
-                    }
-                }
-                catch (Exception e)
-                {
-                    Console.WriteLine($"Виникла помилка: {e.Message}");
-                }
-            }
-            else
-            {
-                Console.WriteLine("Файл не знайдено. Будь ласка, вкажіть дійсний шлях до файлу.");
-            }
+            fs.Write(encodedBytes, 0, encodedBytes.Length);
         }
 
-        // Метод PrintByteTable виводить байтові дані у форматі таблиці з індексами та бінарними значеннями.
-        static void PrintByteTable(byte[] data)
+        Console.WriteLine("Закодована послідовність:");
+        DisplayBinaryData(encodedBytes);
+        Console.WriteLine("Кодування методом Хемінга та збереження у файл .bin завершено.");
+    }
+
+    // Метод для виконання декодування методом Хемінга.
+    static void PerformHammingDecoding()
+    {
+        Console.Write("Введіть шлях до файлу .bin для декодування: ");
+        string inputPath = Console.ReadLine();
+        if (!File.Exists(inputPath))
         {
-            Console.WriteLine("Byte Index | Binary Value");
-            Console.WriteLine("----------------------------");
-            for (int i = 0; i < data.Length; i++)
-            {
-                Console.WriteLine($"{i,11} | {Convert.ToString(data[i], 2).PadLeft(8, '0')}");
-            }
+            Console.WriteLine("Файл не знайдено. Будь ласка, введіть правильний шлях.");
+            return;
         }
+
+        Console.Write("Введіть шлях для збереження файлу .txt: ");
+        string outputPath = Console.ReadLine();
+
+        byte[] encodedBytes = File.ReadAllBytes(inputPath);
+        string encodedText = Encoding.UTF8.GetString(encodedBytes);
+        string decodedText = HammingEncoder.Decode(encodedText);
+
+        File.WriteAllText(outputPath, decodedText, Encoding.UTF8);
+
+        Console.WriteLine("Закодована послідовність:");
+        DisplayBinaryData(encodedBytes);
+        Console.WriteLine("Декодована послідовність: " + decodedText);
+        Console.WriteLine("Декодування методом Хемінга та збереження у файл .txt завершено.");
+    }
+
+    // Метод для виконання корекції помилок в закодованому масиві.
+    static void PerformErrorCorrection()
+    {
+        Console.Write("Введіть шлях до файлу з кодом Хемінга: ");
+        string inputPath = Console.ReadLine();
+        if (!File.Exists(inputPath))
+        {
+            Console.WriteLine("Файл не знайдено. Будь ласка, введіть правильний шлях.");
+            return;
+        }
+
+        byte[] encodedBytes = File.ReadAllBytes(inputPath);
+        Console.WriteLine("Закодована послідовність:");
+        DisplayBinaryData(encodedBytes);
+
+        Console.Write("Введіть позицію помилки: ");
+        if (!int.TryParse(Console.ReadLine(), out int errorPosition) || errorPosition < 1 || errorPosition > encodedBytes.Length * 8)
+        {
+            Console.WriteLine("Некоректна позиція помилки. Будь ласка, введіть правильну позицію.");
+            return;
+        }
+
+        HammingEncoder.IntroduceError(encodedBytes, errorPosition - 1);
+        Console.WriteLine("Послідовність з помилкою:");
+        DisplayBinaryData(encodedBytes);
+
+        HammingEncoder.CorrectError(encodedBytes);
+        Console.WriteLine("Виправлена послідовність:");
+        DisplayBinaryData(encodedBytes);
+
+        Console.Write("Введіть шлях для збереження файлу .bin: ");
+        string outputPath = Console.ReadLine();
+
+        using (FileStream fs = new FileStream(outputPath, FileMode.Create))
+        {
+            fs.Write(encodedBytes, 0, encodedBytes.Length);
+        }
+
+        Console.WriteLine("Корекція помилок та збереження у файл .bin завершено.");
     }
 }
