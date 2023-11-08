@@ -4,6 +4,8 @@ class Program
 {
     static void Main(string[] args)
     {
+        Console.OutputEncoding = Encoding.Unicode;
+
         Console.WriteLine("Програма для кодування, декодування та корекції помилок за допомогою коду Хемінга");
 
         while (true)
