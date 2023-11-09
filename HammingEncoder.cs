@@ -1,138 +1,142 @@
-﻿public static class HammingEncoder
+﻿using HammingChecker;
+
+public class HammingEncoder : IHammingStrategy
 {
-    // Метод кодування текстового повідомлення методом Хемінга.
-    public static string Encode(string text)
+    public byte[] Encode(byte[] bytes)
     {
-        // Обчислення необхідної кількості додаткових бітів (r).
-        int m = text.Length;
-        int r = 0;
-        while (m + r + 1 > Math.Pow(2, r))
-        {
-            r++;
-        }
+        // Створюємо список для зберігання закодованих байтів.
+        List<byte> encodedBytes = new();
 
-        // Створення масиву для закодованого повідомлення.
-        char[] encodedMessage = new char[m + r];
-        int j = 0;
-
-        // Заповнення закодованого повідомлення, додавання бітів з тексту та обчислення бітів парності.
-        for (int i = 1; i <= m + r; i++)
+        // Проходимо кожний байт вхідних даних.
+        foreach (byte b in bytes)
         {
-            if (IsPowerOfTwo(i))
+            // Розбиваємо кожний байт на окремі біти.
+            int[] bits = new int[8];
+            for (int i = 0; i < 8; i++)
             {
-                encodedMessage[i - 1] = '0';
+                bits[i] = (b >> i) & 1;
             }
-            else
-            {
-                encodedMessage[i - 1] = text[j++];
-            }
+
+            // Створюємо масив для зберігання закодованих бітів.
+            int[] encodedBits = new int[12];
+
+            // Розміщуємо біти даних на відповідних позиціях в закодованому слові.
+            encodedBits[2] = bits[0];
+            encodedBits[4] = bits[1];
+            encodedBits[5] = bits[2];
+            encodedBits[6] = bits[3];
+            encodedBits[8] = bits[4];
+            encodedBits[9] = bits[5];
+            encodedBits[10] = bits[6];
+            encodedBits[11] = bits[7];
+
+            // Обчислюємо біти парності.
+            encodedBits[0] = encodedBits[2] ^ encodedBits[4] ^ encodedBits[6] ^ encodedBits[8] ^ encodedBits[10];
+            encodedBits[1] = encodedBits[2] ^ encodedBits[5] ^ encodedBits[6] ^ encodedBits[9] ^ encodedBits[10];
+            encodedBits[3] = encodedBits[4] ^ encodedBits[5] ^ encodedBits[6] ^ encodedBits[11];
+            encodedBits[7] = encodedBits[8] ^ encodedBits[9] ^ encodedBits[10] ^ encodedBits[11];
+
+            // Конвертуємо закодовані біти назад у байти.
+            byte encodedByte1 = (byte)(encodedBits[0] | (encodedBits[1] << 1) | (encodedBits[2] << 2) | (encodedBits[3] << 3) | (encodedBits[4] << 4) | (encodedBits[5] << 5) | (encodedBits[6] << 6) | (encodedBits[7] << 7));
+            byte encodedByte2 = (byte)(encodedBits[8] | (encodedBits[9] << 1) | (encodedBits[10] << 2) | (encodedBits[11] << 3));
+
+            // Додаємо закодовані байти до списку.
+            encodedBytes.Add(encodedByte1);
+            encodedBytes.Add(encodedByte2);
         }
 
-        // Виведення закодованого повідомлення в двійковій формі на консоль.
-        Console.WriteLine("Закодоване повідомлення в двійковій формі:");
-        for (int i = 0; i < encodedMessage.Length; i++)
-        {
-            Console.Write(encodedMessage[i] + " ");
-        }
-        Console.WriteLine();
-
-        // Повернення закодованого повідомлення.
-        return new string(encodedMessage);
+        // Повертаємо закодовані байти як масив.
+        return encodedBytes.ToArray();
     }
 
-    // Метод декодування закодованого повідомлення методом Хемінга.
-    public static string Decode(string encodedText)
+    public byte[] Decode(byte[] bytes)
     {
-        // Обчислення кількості додаткових бітів (r).
-        int r = 0;
-        while (Math.Pow(2, r) < encodedText.Length)
-        {
-            r++;
-        }
+        // Створюємо список для зберігання декодованих байтів.
+        List<byte> decodedBytes = new();
 
-        // Обчислення кількості даних бітів (m).
-        int m = encodedText.Length - r;
-        char[] decodedMessage = new char[m];
-        int j = 0;
-
-        // Видалення бітів парності та відновлення даних бітів.
-        for (int i = 1; i <= m + r; i++)
+        // Проходимо кожний байт вхідних даних.
+        for (int i = 0; i < bytes.Length; i += 2)
         {
-            if (!IsPowerOfTwo(i))
+            // Розбиваємо кожний байт на окремі біти.
+            int[] encodedBits = new int[12];
+            for (int j = 0; j < 8; j++)
             {
-                decodedMessage[j++] = encodedText[i - 1];
+                encodedBits[j] = (bytes[i] >> j) & 1;
             }
+            for (int j = 0; j < 4; j++)
+            {
+                encodedBits[j + 8] = (bytes[i + 1] >> j) & 1;
+            }
+
+            // Обчислюємо біти парності.
+            int[] parityBits = new int[4];
+            parityBits[0] = encodedBits[0] ^ encodedBits[2] ^ encodedBits[4] ^ encodedBits[6] ^ encodedBits[8] ^ encodedBits[10];
+            parityBits[1] = encodedBits[1] ^ encodedBits[2] ^ encodedBits[5] ^ encodedBits[6] ^ encodedBits[9] ^ encodedBits[10];
+            parityBits[2] = encodedBits[3] ^ encodedBits[4] ^ encodedBits[5] ^ encodedBits[6] ^ encodedBits[11];
+            parityBits[3] = encodedBits[7] ^ encodedBits[8] ^ encodedBits[9] ^ encodedBits[10] ^ encodedBits[11];
+
+            // Визначаємо позицію помилки.
+            int errorBit = parityBits[0] | (parityBits[1] << 1) | (parityBits[2] << 2) | (parityBits[3] << 3);
+            if (errorBit != 0)
+            {
+                // Виправляємо помилку, змінюючи біт на вказаній позиції.
+                encodedBits[errorBit - 1] ^= 1;
+            }
+
+            // Конвертуємо закодовані біти назад у байти.
+            byte decodedByte = (byte)(encodedBits[2] | (encodedBits[4] << 1) | (encodedBits[5] << 2) | (encodedBits[6] << 3) | (encodedBits[8] << 4) | (encodedBits[9] << 5) | (encodedBits[10] << 6) | (encodedBits[11] << 7));
+
+            // Додаємо декодований байт до списку.
+            decodedBytes.Add(decodedByte);
         }
 
-        // Виведення розкодованого повідомлення в двійковій формі на консоль.
-        Console.WriteLine("Розкодоване повідомлення в двійковій формі:");
-        for (int i = 0; i < decodedMessage.Length; i++)
-        {
-            Console.Write(decodedMessage[i] + " ");
-        }
-        Console.WriteLine();
-
-        // Повернення розкодованого повідомлення.
-        return new string(decodedMessage);
+        // Повертаємо декодовані байти як масив.
+        return decodedBytes.ToArray();
     }
 
-    // Метод введення помилки в закодований байтовий масив.
-    public static void IntroduceError(byte[] encodedBytes, int errorPosition)
+    public byte[] IntroduceError(byte[] bytes, int errorPosition)
     {
-        // Обчислення індексу байта та біта в байті для введення помилки.
-        int byteIndex = errorPosition / 8;
-        int bitIndex = errorPosition % 8;
-
-        // Введення помилки в вказаному байті та біті.
-        encodedBytes[byteIndex] ^= (byte)(1 << (7 - bitIndex));
+        // Вносимо помилку в байт, змінюючи біт на вказаній позиції.
+        // Використовуємо операцію XOR з маскою, яка має 1 на відповідній позиції.
+        bytes[errorPosition / 8] ^= (byte)(1 << (errorPosition % 8));
+        return bytes;
     }
 
-    // Метод виправлення помилок у закодованому байтовому масиві.
-    public static void CorrectError(byte[] encodedBytes)
+    public byte[] DetectAndCorrectError(byte[] bytes)
     {
-        // Обчислення кількості додаткових бітів (r).
-        int r = 0;
-        while (Math.Pow(2, r) < encodedBytes.Length * 8)
+        // Проходимо через кожний байт у масиві.
+        for (int i = 0; i < bytes.Length; i += 2)
         {
-            r++;
+            // Розбиваємо кожний байт на окремі біти.
+            int[] encodedBits = new int[12];
+            for (int j = 0; j < 8; j++)
+            {
+                encodedBits[j] = (bytes[i] >> j) & 1;
+            }
+            for (int j = 0; j < 4; j++)
+            {
+                encodedBits[j + 8] = (bytes[i + 1] >> j) & 1;
+            }
+
+            // Обчислюємо біти парності.
+            int[] parityBits = new int[4];
+            parityBits[0] = encodedBits[0] ^ encodedBits[2] ^ encodedBits[4] ^ encodedBits[6] ^ encodedBits[8] ^ encodedBits[10];
+            parityBits[1] = encodedBits[1] ^ encodedBits[2] ^ encodedBits[5] ^ encodedBits[6] ^ encodedBits[9] ^ encodedBits[10];
+            parityBits[2] = encodedBits[3] ^ encodedBits[4] ^ encodedBits[5] ^ encodedBits[6] ^ encodedBits[11];
+            parityBits[3] = encodedBits[7] ^ encodedBits[8] ^ encodedBits[9] ^ encodedBits[10] ^ encodedBits[11];
+
+            // Визначаємо позицію помилки.
+            int errorBit = parityBits[0] | (parityBits[1] << 1) | (parityBits[2] << 2) | (parityBits[3] << 3);
+            if (errorBit != 0)
+            {
+                // Виправляємо помилку, змінюючи біт на вказаній позиції.
+                encodedBits[errorBit - 1] ^= 1;
+            }
+
+            // Записуємо виправлені біти назад у масив байтів.
+            bytes[i] = (byte)(encodedBits[0] | (encodedBits[1] << 1) | (encodedBits[2] << 2) | (encodedBits[3] << 3) | (encodedBits[4] << 4) | (encodedBits[5] << 5) | (encodedBits[6] << 6) | (encodedBits[7] << 7));
+            bytes[i + 1] = (byte)(encodedBits[8] | (encodedBits[9] << 1) | (encodedBits[10] << 2) | (encodedBits[11] << 3));
         }
-
-        // Виправлення помилок у закодованому масиві шляхом зміни бітів.
-        for (int i = 0; i < r; i++)
-        {
-            int parityPosition = (int)Math.Pow(2, i);
-            int parityBit = 0;
-
-            // Обчислення біту парності для кожного позиції.
-            for (int k = parityPosition - 1; k < encodedBytes.Length * 8; k += 2 * parityPosition)
-            {
-                for (int l = 0; l < parityPosition && k + l < encodedBytes.Length * 8; l++)
-                {
-                    int byteIndex = (k + l) / 8;
-                    int bitIndex = (k + l) % 8;
-                    parityBit ^= (encodedBytes[byteIndex] >> (7 - bitIndex)) & 1;
-                }
-            }
-
-            int errorPosition = 0;
-            for (int k = parityPosition; k < encodedBytes.Length * 8; k += parityPosition * 2)
-            {
-                errorPosition += k;
-            }
-
-            // Якщо біт парності не дорівнює 0, виправити помилку.
-            if (parityBit != 0)
-            {
-                int byteIndex = (errorPosition - 1) / 8;
-                int bitIndex = (errorPosition - 1) % 8;
-                encodedBytes[byteIndex] ^= (byte)(1 << (7 - bitIndex));
-            }
-        }
-    }
-
-    // Допоміжний метод для перевірки, чи є число степенем двійки.
-    private static bool IsPowerOfTwo(int number)
-    {
-        return (number & (number - 1)) == 0 && number > 0;
+        return bytes;
     }
 }
