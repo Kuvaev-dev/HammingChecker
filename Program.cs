@@ -129,13 +129,13 @@ class Program
 
     static void PrintBytes(byte[] bytes)
     {
-        Console.WriteLine("╭-─────────────────────────────-╮");
+        Console.WriteLine("╭───────────────────────────────╮");
         Console.WriteLine("│ Index       │ Byte Data       │");
         Console.WriteLine("├───────────────────────────────┤");
         for (int i = 0; i < bytes.Length; i++)
         {
             Console.WriteLine("│ " + i.ToString().PadRight(12) + "│ " + Convert.ToString(bytes[i], 2).PadLeft(8, '0') + "        │");
         }
-        Console.WriteLine("╰-─────────────────────────────-╯");
+        Console.WriteLine("╰───────────────────────────────╯");
     }
 }
