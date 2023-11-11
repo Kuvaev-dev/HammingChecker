@@ -110,7 +110,7 @@ class Program
                     Console.WriteLine("-> Помилка введена.");
                     Console.WriteLine("-> Байти з помилкою:");
                     PrintBytes(errorIntroducedBytes);
-                    Console.WriteLine("-> Позиція помилки (від 0): " + errorPosition);
+                    Console.WriteLine("-> Позиція помилки (див. колонку Index): " + errorPosition++);
 
                     // Визначаємо та виправляємо помилку у байтах.
                     byte[] correctedBytes = hammingEncoder.DetectAndCorrectError(errorIntroducedBytes);
