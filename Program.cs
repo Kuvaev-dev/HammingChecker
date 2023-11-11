@@ -139,7 +139,7 @@ class Program
         Console.WriteLine("├───────────────────────────────┤");
         for (int i = 0; i < bytes.Length; i++)
         {
-            Console.WriteLine("│ " + i.ToString().PadRight(12) + "│ " + Convert.ToString(bytes[i], 2).PadLeft(8, '0') + "        │");
+            Console.WriteLine("│ " + (i + 1).ToString().PadRight(12) + "│ " + Convert.ToString(bytes[i], 2).PadLeft(8, '0') + "        │");
         }
         Console.WriteLine("╰───────────────────────────────╯");
     }
