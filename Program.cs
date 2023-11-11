@@ -89,13 +89,18 @@ class Program
 
                     // Зчитуємо закодовані байти з файлу.
                     byte[] errorBytes = File.ReadAllBytes(errorPath);
+                    Console.WriteLine("-> Ваші дані у двійковій формі:");
+                    PrintBytes(errorBytes);
                     Console.Write("-> Введіть позицію помилки: ");
                     int errorPosition;
-                    if (!int.TryParse(Console.ReadLine(), out errorPosition) || errorPosition < 0 || errorPosition >= errorBytes.Length * 8)
+                    if (!int.TryParse(Console.ReadLine(), out errorPosition) || errorPosition <= 0 || errorPosition > errorBytes.Length * 8)
                     {
                         Console.WriteLine("-> Невірна позиція помилки. Спробуйте ще раз.");
                         break;
                     }
+
+                    // Коригуємо введену позицію, оскільки користувач лічить з 1, а не з 0.
+                    errorPosition--;
 
                     // Вводимо помилку в байти та зберігаємо в інший файл.
                     byte[] errorIntroducedBytes = hammingEncoder.IntroduceError(errorBytes, errorPosition);

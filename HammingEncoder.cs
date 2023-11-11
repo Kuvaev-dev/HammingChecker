@@ -2,6 +2,8 @@
 
 public class HammingEncoder : IHammingStrategy
 {
+    // & 1 - отримання найменшого біта 0001
+
     public byte[] Encode(byte[] bytes)
     {
         // Створюємо список для зберігання закодованих байтів.
@@ -96,9 +98,13 @@ public class HammingEncoder : IHammingStrategy
 
     public byte[] IntroduceError(byte[] bytes, int errorPosition)
     {
+        // Визначте індекс байта та біта в межах масиву байтів.
+        int byteIndex = errorPosition / 8;
+        int bitIndex = 7 - (errorPosition % 8);
+
         // Вносимо помилку в байт, змінюючи біт на вказаній позиції.
         // Використовуємо операцію XOR з маскою, яка має 1 на відповідній позиції.
-        bytes[errorPosition / 8] ^= (byte)(1 << (errorPosition % 8));
+        bytes[byteIndex] ^= (byte)(1 << bitIndex);
         return bytes;
     }
 
